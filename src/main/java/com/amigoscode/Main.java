@@ -2,11 +2,11 @@ package com.amigoscode;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @SpringBootApplication
 @RestController
@@ -22,54 +22,44 @@ public class Main {
         SpringApplication.run(Main.class, args);
     }
 
-
-    @GetMapping("/greet")
-    public GreetResponde greet() {
-        GreetResponde responde =  new GreetResponde("Hello",
-                List.of("Java", "Golang", "JavaScript"),
-                new Person("Alex", 20, 30_000));
-        return responde;
-    }
-
     @GetMapping
     public List<Customer> getCustomers() {
         return customerRepository.findAll();
     }
-    record Person(String name, Integer age, double save){}
-    record GreetResponde(String greet,
-                         List<String> favProgramingLanguages,
-                         Person person) {}
 
-//    class GreetResponde {
-//        private final String greet;
-//
-//
-//        GreetResponde(String greet) {
-//            this.greet = greet;
-//        }
-//
-//        public String getGreet() {
-//            return greet;
-//        }
-//
-//        @Override
-//        public String toString() {
-//            return "GreetResponde{" +
-//                    "greet='" + greet + '\'' +
-//                    '}';
-//        }
-//
-//        @Override
-//        public boolean equals(Object o) {
-//            if (this == o) return true;
-//            if (o == null || getClass() != o.getClass()) return false;
-//            GreetResponde that = (GreetResponde) o;
-//            return Objects.equals(greet, that.greet);
-//        }
-//
-//        @Override
-//        public int hashCode() {
-//            return Objects.hash(greet);
-//        }
-//    }
+    record NewCustomerRequest(String name, String email, Integer age) {    }
+
+    @PostMapping
+    public void addCustomer(@RequestBody NewCustomerRequest request) {
+        Customer customer = new Customer();
+        customer.setName(request.name());
+        customer.setEmail(request.email());
+        customer.setAge(request.age());
+        customerRepository.save(customer);
+    }
+
+    @DeleteMapping("{customerId}")
+    public void deleteCustomer(@PathVariable("customerId") Integer id) {
+        customerRepository.deleteById(id);
+    }
+
+
+    record CustomerUpdateRequest(String name,
+                                 String email,
+                                 Integer age) {
+    }
+
+    @PutMapping("/{customerId}")
+    public ResponseEntity<Object> updateCustomer(@RequestBody Customer customer, @PathVariable("customerId") Integer id) {
+
+        Optional<Customer> customerOptional = customerRepository.findById(id);
+        if (customerOptional.isEmpty())
+            return ResponseEntity.notFound().build();
+
+        customer.setId(id);
+        customerRepository.save(customer);
+
+        return ResponseEntity.noContent().build();
+    }
+
 }
